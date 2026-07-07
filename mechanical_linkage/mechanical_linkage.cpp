@@ -80,10 +80,10 @@ struct evaluation_order_t{
 };
 
 struct display_t{
-  static constexpr double x_min = -45.0;
-  static constexpr double x_max = 45.0;
-  static constexpr double y_min = -45.0;
-  static constexpr double y_max = 45.0;
+  static constexpr double x_min = -15.0;
+  static constexpr double x_max = 15.0;
+  static constexpr double y_min = -15.0;
+  static constexpr double y_max = 15.0;
 
   static const int width = 90;
   static const int height = 30;
@@ -438,6 +438,7 @@ void delete_node(linkage_slot_t** table_addr){
   deallocate_node(*table_addr);
     *table_addr = nullptr;
     push_to_gap(table_addr);
+    regenerate_evaluation_order();
 }
 
 point_slot_t* allocate_node(int x, int y){
@@ -842,20 +843,23 @@ void display_nodes(){
   flush_buffer();
 }
 
+
 void apply_transformation(int point_idx, const t_matrix& matrix){
   int max_point_idx = pointsTable.tail - pointsTable.head;
-  if(point_idx<0 || point_idx>max_point_idx || pointsTable.head[point_idx]==nullptr){
-    std::cout << "Invalid point index";
+  if(point_idx < 0 || point_idx >= max_point_idx || pointsTable.head[point_idx] == nullptr){
+    std::cout << "Invalid point index\n";
     return;
   }
 
-  point_t& pt = pointsTable.head[point_idx]->data;
+  double delta_angle = std::atan2(matrix.m[1][0], matrix.m[0][0]);
 
+  point_t& pt = pointsTable.head[point_idx]->data;
   double new_x = pt.x * matrix.m[0][0] + pt.y * matrix.m[0][1] + 1.0 * matrix.m[0][2];
   double new_y = pt.x * matrix.m[1][0] + pt.y * matrix.m[1][1] + 1.0 * matrix.m[1][2];
 
   pt.x = new_x;
   pt.y = new_y;
+  pt.global_angle += delta_angle;
 
   regenerate_evaluation_order();
 }
@@ -870,20 +874,20 @@ void calculate_forward_kinematics(){ //to be used in regenerate evaluation order
       child_pt.global_angle = parent_pt.global_angle + child_pt.local_angle;
       
       child_pt.x = parent_pt.x + linkage.length * std::cos(child_pt.global_angle);
-      child_pt.x = child_pt.x + linkage.length * std::sin(child_pt.global_angle);
+      child_pt.y = parent_pt.y + linkage.length * std::sin(child_pt.global_angle);
     }
     else if(linkage.type == ROTATIONAL){
       child_pt.global_angle = parent_pt.global_angle + linkage.base_angle;
 
       child_pt.x = parent_pt.x + linkage.length * std::cos(child_pt.global_angle);
-      child_pt.x = child_pt.x + linkage.length * std::sin(child_pt.global_angle);
+      child_pt.y = parent_pt.y + linkage.length * std::sin(child_pt.global_angle);
     }
     else if(linkage.type == VISUAL){
-      double dx = parent_pt.x - child_pt.x;
-      double dy = parent_pt.y - child_pt.y;
+      double dx = child_pt.x - parent_pt.x;
+      double dy = child_pt.y - parent_pt.y;
       
       linkage.length = std::sqrt((dx*dx)+(dy*dy));
-      linkage.base_angle = (dx==0.0 ||(dx==0.0 && dy==0.0)) ? 0.0 : std::atan2(dy,dx);
+      linkage.base_angle = (dx == 0.0 && dy == 0.0) ? 0.0 : std::atan2(dy,dx);
     }
   }
 }
