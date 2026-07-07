@@ -134,6 +134,7 @@ void clear_buffer();
 
 void display_nodes();
 void apply_transformation(int point, const t_matrix& matrix);
+void calculate_forward_kinematics();
 
 void reset();
 void reset_points();
@@ -735,7 +736,7 @@ void regenerate_evaluation_order(){
     delete[] parent_counts;
     delete[] zero_dep_q;
 
-    calculate_forward_kinematic();
+    calculate_forward_kinematics();
 }
 
 void clear_buffer(){
@@ -858,7 +859,7 @@ void apply_tranformation(int point_idx, const t_matrix& matrix){
 
   regenerate_evaluation_order();
 }
-void calculate_forward_kinematic(){ //to be used in regenerate evaluation order
+void calculate_forward_kinematics(){ //to be used in regenerate evaluation order
   for(int i=0; i<evaluation_order.count; i++){
     linkage_t& linkage = evaluation_order.head[i]->data;  //use references when able to ptr 2nd choice (refs cant be reassigned nor null)
 
