@@ -362,7 +362,8 @@ void resize_array(T*& array_ptr, int& current_capacity, double resize_factor){
   int new_capacity = (current_capacity == 0) ? 8 : current_capacity * resize_factor;
 
   T* new_array = new T[new_capacity];
-  for(int i=0; i<current_capacity;i++){
+  int elements_to_copy = (new_capacity < current_capacity) ? new_capacity : current_capacity;
+  for(int i = 0; i < elements_to_copy; i++){
     *(new_array+i) = *(array_ptr+i);
   }
 
@@ -398,23 +399,32 @@ void create_linkage(int parent_point, int child_point, link_type type, char rend
   }
 }
 
-void delete_node(int index){
-  point_slot_t** table_addr = pointsTable.head+index;
-  if(*table_addr != nullptr && index<=pointsTable.tail-pointsTable.head){
-    deallocate_node(*table_addr);
-    *table_addr = nullptr;
-    push_to_gap(table_addr);
-
-    int possible_linkage_count = linkagesTable.tail - linkagesTable.head;
-    for(int i=0; i<possible_linkage_count;i++){
-      if(linkagesTable.head[i]->data.child == index || linkagesTable.head[i]->data.parent == index){
-        delete_node(linkagesTable.head + i);
-        break;
-      }
-    }
-  }else{
-    std::cout << " No such point exists";
+void delete_node(int point_idx){
+  int max_point_idx = pointsTable.tail - pointsTable.head;
+  if(point_idx < 0 || point_idx >= max_point_idx || pointsTable.head[point_idx] == nullptr){
+    std::cout << "No such point exists";
+    return;
   }
+
+  int max_linkage_idx = linkagesTable.tail - linkagesTable.head;
+  for(int i = 0; i < max_linkage_idx; i++){
+    if(linkagesTable.head[i] == nullptr){ 
+      continue;
+    }
+    linkage_t& linkage = linkagesTable.head[i]->data;
+    if(linkage.parent == point_idx || linkage.child == point_idx){
+      
+      deallocate_node(linkagesTable.head[i]);
+      linkagesTable.head[i] = nullptr;
+      push_to_gap(&linkagesTable.head[i]);
+    }
+  }
+
+  deallocate_node(pointsTable.head[point_idx]);
+  pointsTable.head[point_idx] = nullptr;
+  push_to_gap(&pointsTable.head[point_idx]);
+
+  regenerate_evaluation_order();
 }
 void delete_node(int point_a, int point_b){
   int possible_linkage_count = linkagesTable.tail - linkagesTable.head;
@@ -429,6 +439,7 @@ void delete_node(int point_a, int point_b){
   }
   if(table_addr != nullptr){
     delete_node(table_addr);
+    regenerate_evaluation_order();
     std::cout << "Linkage successfully deleted.\n";
   }else{
     std::cout << "No such linkage exists.\n";
@@ -508,7 +519,7 @@ linkage_slot_t* allocate_node(int parent_point, int child_point, link_type type,
 
   double global_angle = (dy == 0.0 && dx == 0.0) ? 0: std::atan2(dy, dx);
   allocation_addr->data.length = std::sqrt((dx * dx) + (dy * dy));
-  allocation_addr->data.base_angle = global_angle;
+  allocation_addr->data.base_angle = global_angle - pointsTable.head[parent_point]->data.global_angle;
 
   pointsTable.head[child_point]->data.global_angle = global_angle;
   pointsTable.head[child_point]->data.local_angle = global_angle - pointsTable.head[parent_point]->data.global_angle;
@@ -611,15 +622,20 @@ linkage_slot_t** add_to_table(linkage_slot_t* new_linkage){
 }
 
 void push_to_gap(point_slot_t** table_slot){
-  if(point_gaps.tail - point_gaps.head >= point_gaps.capacity){
+  int active_elements = point_gaps.tail - point_gaps.head;
+  if(active_elements >= point_gaps.capacity){
     resize_array(point_gaps.head, point_gaps.capacity, 2.0);
+    point_gaps.tail = point_gaps.head + active_elements;
   }
   *point_gaps.tail = table_slot;
   point_gaps.tail++;
 }
+
 void push_to_gap(linkage_slot_t** table_slot){
-  if(linkage_gaps.tail - linkage_gaps.head >= linkage_gaps.capacity){
+  int active_elements = linkage_gaps.tail - linkage_gaps.head;
+  if(active_elements >= linkage_gaps.capacity){
     resize_array(linkage_gaps.head, linkage_gaps.capacity, 2.0);
+    linkage_gaps.tail = linkage_gaps.head + active_elements;
   }
   *linkage_gaps.tail = table_slot;
   linkage_gaps.tail++;
@@ -749,7 +765,7 @@ void add_points_to_buffer(){
   for(int i=0;i<pointsTable.tail-pointsTable.head;i++){
     if(pointsTable.head[i] != nullptr){
       int x_pixel = static_cast<int>((pointsTable.head[i]->data.x-display.x_min)/(display.x_max-display.x_min)*((display.logical_width)-1));
-      int y_pixel = static_cast<int>((pointsTable.head[i]->data.y-display.y_min)/(display.y_max-display.y_min)*(display.height - 1));
+      int y_pixel = (display.height - 1) - static_cast<int>((pointsTable.head[i]->data.y - display.y_min) / (display.y_max - display.y_min) * (display.height - 1));
       
       if (x_pixel < 0 || x_pixel >= display.logical_width || y_pixel < 0 || y_pixel >= display.height) {
         continue;
@@ -791,9 +807,10 @@ void add_linkages_to_buffer(){
     double world_y1 = pointsTable.head[point_b]->data.y;
 
     int x0 = static_cast<int>((world_x0 - display.x_min) / (display.x_max - display.x_min) * (display.logical_width - 1));
-    int y0 = static_cast<int>((world_y0 - display.y_min) / (display.y_max - display.y_min) * (display.height - 1));
     int x1 = static_cast<int>((world_x1 - display.x_min) / (display.x_max - display.x_min) * (display.logical_width - 1));
-    int y1 = static_cast<int>((world_y1 - display.y_min) / (display.y_max - display.y_min) * (display.height - 1));
+    
+    int y0 = (display.height - 1) - static_cast<int>((world_y0 - display.y_min) / (display.y_max - display.y_min) * (display.height - 1));
+    int y1 = (display.height - 1) - static_cast<int>((world_y1 - display.y_min) / (display.y_max - display.y_min) * (display.height - 1));
 
     // 2. Set up Alois Zingl's Symmetric Bresenham Algorithm
     int dx = std::abs(x1 - x0);
@@ -861,6 +878,15 @@ void apply_transformation(int point_idx, const t_matrix& matrix){
   pt.y = new_y;
   pt.global_angle += delta_angle;
 
+  int max_linkage_idx = linkagesTable.tail - linkagesTable.head;
+  for(int i = 0; i < max_linkage_idx; i++){
+    if(linkagesTable.head[i] == nullptr) continue;
+  
+    linkage_t& linkage = linkagesTable.head[i]->data;
+    if(linkage.child == point_idx && linkage.type == ROTATIONAL){
+      linkage.base_angle += delta_angle;
+    }
+  }
   regenerate_evaluation_order();
 }
 void calculate_forward_kinematics(){ //to be used in regenerate evaluation order
