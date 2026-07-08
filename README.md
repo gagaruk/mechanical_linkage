@@ -6,7 +6,6 @@
 #### $\color{red}{\text{TNecessay terminal size 90 chars wide, 30 lines long if the settings are not chaged }}$
 
 [![🎮DEMO in Codespaces]](https://codespaces.new/gagaruk/mechanical_linkage)\
-[📥 Download the executable](https://github.com/gagaruk/DSA/blob/main/mechanical_linkage/mechanical_linkage.exe)
 [👾 Download the code](https://github.com/gagaruk/DSA/blob/main/mechanical_linkage/mechanical_linkage.cpp)
 
 ## Quick Start
