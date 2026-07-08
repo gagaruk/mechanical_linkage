@@ -1,4 +1,4 @@
-# ⚙️🔩🔧 MechaLink CLI
+# ⚙️🔩🔧 MechaLink2D CLI
 ## A very simple mechanical linkage simulator that works in the terminal with a focus on how data is stored!
 <img width="1516" height="1008" alt="mechanical_linkage0 (2)" src="https://github.com/user-attachments/assets/4baf4ee8-0e4c-4bec-a62e-e32f86523d87" />
 
@@ -83,6 +83,8 @@ The Menu:\
 ```
 ### $\color{red}{\text{the WHAT and the WHY >:]}}$
 dict: node= linkage/point\
+
+$\color{red}{\text{->}}$ This is actually a DSA project which took this shape because I like robotics. My goal was to write a mechanical linkage simulator which was lightweight so that it could run on microcontrollers. I'm planning on building it further to 3d
 
 $\color{red}{\text{->}}$ The pages store the points/linkages themselves and not pointers. This purpose of this is to cluster the chunks of data together so that they won't get scattered in the memory and get in the way of some other large data structure. This might not matter when you're on a computer that much since the data is relatively small, but if this was to be used with a microcontroller (which I'm going to do) every single memory address is important. When the pages are full another page with the same static array size is added to it resulting in a stack data structure from a reversed-linked-list. I decided on this after learning how databanks used hardisks which are sometimes called "Blocks" instead of "pages".\
 \
