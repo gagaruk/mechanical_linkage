@@ -812,7 +812,7 @@ void add_linkages_to_buffer(){
     int y0 = (display.height - 1) - static_cast<int>((world_y0 - display.y_min) / (display.y_max - display.y_min) * (display.height - 1));
     int y1 = (display.height - 1) - static_cast<int>((world_y1 - display.y_min) / (display.y_max - display.y_min) * (display.height - 1));
 
-    // 2. Set up Alois Zingl's Symmetric Bresenham Algorithm
+    // Alois Zingl's Symmetric Bresenham Algorithm
     int dx = std::abs(x1 - x0);
     int dy = std::abs(y1 - y0);
     int sx = (x0 < x1) ? 1 : -1;
